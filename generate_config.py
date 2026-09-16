@@ -12,10 +12,19 @@ def is_intake_key(intake_key: str) -> re.Match[str] | None:
     return re.search(pattern, intake_key)
 
 
+def parse_size_to_bytes(size: str) -> int:
+    size = size.strip().lower()
+    units = {"k": 1024, "m": 1024**2, "g": 1024**3, "t": 1024**4}
+    if size[-1] in units:
+        return int(float(size[:-1]) * units[size[-1]])
+    return int(size)
+
+
 def activate_monitoring(item: dict[str, str]) -> None:
     to_print.append("Forwarder monitoring is active")
     to_print.append("Intake key: " + str(item["intake_key"]))
     to_print.append("Queue size: " + str(item["queue_size"]) if "queue_size" in item else "Queue size: " + str(item["default_queue_size"]))
+    to_print.append("Disk space: " + str(item["disk_space"]) + " bytes")
     to_print.append("")
     config = template_stats.render(item)
     filename = f"/etc/rsyslog.d/stats_{item['name']}.conf"
@@ -55,6 +64,8 @@ to_print = []
 to_print.append("These Intakes have been set up")
 to_print.append("-----------------------------")
 
+total_disk_space = parse_size_to_bytes(os.getenv("DISK_SPACE", "32g"))
+
 # Generate one file per intake
 for item in data.get("intakes", []):
     if not is_intake_key(item["intake_key"]):
@@ -64,6 +75,10 @@ for item in data.get("intakes", []):
         exit(0)
 
     item["default_queue_size"] = round(int(os.getenv("MEMORY_MESSAGES", 100000)) / len(data.get("intakes")))
+    if "disk_space" in item:
+        item["disk_space"] = parse_size_to_bytes(str(item["disk_space"]))
+    else:
+        item["disk_space"] = round(total_disk_space / len(data.get("intakes")))
     item["endpoint"] = endpoint
 
     name_origin = item["name"]
@@ -78,6 +93,7 @@ for item in data.get("intakes", []):
     to_print.append("Port: " + str(item["port"]))
     to_print.append("Intake key: " + str(item["intake_key"]))
     to_print.append("Queue size: " + str(item["queue_size"]) if "queue_size" in item else "Queue size: " + str(item["default_queue_size"]))
+    to_print.append("Disk space: " + str(item["disk_space"]) + " bytes")
     to_print.append("")
 
     if item["protocol"].lower() == "tls":

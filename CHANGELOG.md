@@ -2,6 +2,13 @@
 
 All notable changes with sekoiaio concentrator will be documented in this file.
 
+## [2.7.6]
+
+- Fix per-intake queues so they actually use disk-assisted overflow:
+  - `queue.maxDiskSpace` (driven by `DISK_SPACE`) was only ever set on the global `main_queue`, not on the dedicated per-intake ruleset queues that carry actual intake traffic
+  - As a result, once an intake's in-memory queue (`MEMORY_MESSAGES`) filled up, messages could be dropped instead of spilling to disk as documented
+  - `DISK_SPACE` is now split across intakes the same way `MEMORY_MESSAGES` already is, and a per-intake override is available via `disk_space` in `intakes.yaml`
+
 ## [2.7.5]
 
 - Add `action.resumeRetryCount=-1` and `action.resumeInterval=30` to all output actions:
