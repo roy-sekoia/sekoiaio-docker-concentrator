@@ -2,6 +2,25 @@
 
 All notable changes with sekoiaio concentrator will be documented in this file.
 
+## [2.7.6]
+
+- Enable TCP `KeepAlive` on the `omfwd` actions (and `tcp.keepalive` on the
+  `omrelp` actions) used to send logs to Sekoia intakes. Under sustained load,
+  the local TCP connection to an intake endpoint can silently die (no RST
+  received) while rsyslog still considers it "established"; without keepalive,
+  a subsequent write can block indefinitely on that dead socket, wedging the
+  ruleset's single output worker and stalling that intake until the container
+  is manually restarted. Keepalive lets the kernel detect the dead peer and
+  fail the write, so rsyslog's existing `action.resumeRetryCount="-1"` retry
+  logic can reconnect.
+- Add a self-healing healthcheck (`healthcheck.py`) as defense-in-depth: it
+  detects when a per-intake output action is stuck (backlog present but
+  nothing forwarded for several consecutive `impstats` intervals) for any
+  other reason and automatically restarts `rsyslogd` so the `restart: always`
+  policy can recover the container, instead of requiring a manual restart.
+- Set an explicit `interval="60"` on the `impstats` module so the healthcheck can
+  reliably observe fresh per-interval statistics.
+
 ## [2.7.5]
 
 - Add `action.resumeRetryCount=-1` and `action.resumeInterval=30` to all output actions:

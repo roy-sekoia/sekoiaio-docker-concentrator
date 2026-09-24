@@ -30,6 +30,7 @@ action(
     Template="SEKOIAIO_{{ name |lower }}_Template"
     action.resumeRetryCount="-1"
     action.resumeInterval="30"
+    tcp.keepalive="on"
     )
 {% else %}
 action(
@@ -46,6 +47,10 @@ action(
     Template="SEKOIAIO_{{ name |lower }}_Template"
     action.resumeRetryCount="-1"
     action.resumeInterval="30"
+    KeepAlive="on"
+    KeepAlive.Time="60"
+    KeepAlive.Interval="15"
+    KeepAlive.Probes="4"
     )
 {% endif %}
 {% if ( debug | lower ) == "true"  %}
